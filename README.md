@@ -15,3 +15,31 @@ I would like to also:
 - Test if an IP exists within a given CIDR block
 - Test if an IP exists within a provided IP address range
 
+# Installation
+## Build from source
+### Prerequisites
+To build from source, you will need the following available on your host:
+- `git`
+- `go` (1.23+)
+### Building
+You can build this project from source by downloading a release tag artifact or cloning this repo:
+```
+git clone git@github.com:taylrfnt/cidr-cli.git weather
+```
+After cloning the repo, delete the git contents:
+```
+cd idr-cli && rm -rf .git
+```
+Now, run a Go build:
+```
+go build
+```
+You can execute `cidr-cli` directly:
+```
+./cidr-cli
+```
+or you can add it to your `$PATH` for easier use:
+```
+export PATH=${PATH}:/path/to/cidr-cli/directory
+```
+
