@@ -1,0 +1,6 @@
+# macOS
+.DS_Store
+
+# built artifact
+cidr-cli
+
