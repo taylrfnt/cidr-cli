@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"strconv"
 	"strings"
@@ -8,16 +9,11 @@ import (
 
 func main() {
 	/* GET CIDR RANGE FROM INPUT */
-	// Println function is used to
-	// display output in the next line
-	fmt.Println("Enter network CIDR block: ")
-
-	// var then variable name then variable type
 	var cidrBlock string
-
-	// Taking input from user
-	fmt.Scanln(&cidrBlock)
-	// cidrBlock := "192.168.1.0/24"
+	var testIp string
+	flag.StringVar(&cidrBlock, "C", "", "The CIDR Address Block in format <address>/<network prefix>")
+	flag.StringVar(&testIp, "t", "", "The IP address to be tested within the CIDR range, in IPv4 format (xxx.xxx.xxx.xxx)")
+	flag.Parse()
 
 	// split the cidr block into address & network prefix
 	addressSlice := strings.Split(cidrBlock, "/")
@@ -50,7 +46,12 @@ func main() {
 			binaryIpSlice[i] = binaryIpString
 		}
 	}
-	fmt.Printf("Binary IP representation:\n%v\n", binaryIpSlice)
+	fmt.Printf("Binary IP representation:\n%s %s %s %s\n",
+		binaryIpSlice[0],
+		binaryIpSlice[1],
+		binaryIpSlice[2],
+		binaryIpSlice[3],
+	)
 
 	/* CONVERT TO START AND END ADDRESS */
 	binaryIp := strings.Join(binaryIpSlice, "")
