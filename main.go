@@ -9,6 +9,61 @@ import (
 	"strings"
 )
 
+/* UTILITY FUNCTIONS */
+func ParseCidr(cidrBlock string) (string, int, error) {
+	splitAddr := strings.Split(cidrBlock, "/")
+
+	prefixBits, err := strconv.Atoi(splitAddr[len(splitAddr)-1])
+	if err != nil {
+		fmt.Println("Error parsing CIDR block:", err)
+		return "", 32, err
+	} else {
+		return splitAddr[0], prefixBits, nil
+	}
+}
+
+func ConvertAddr(address string, targetFormat string) (string, error) {
+	bitwiseAddress := strings.Split(address, ".")
+	if targetFormat == "binary" {
+		// placeholder for storing converted vals
+		binaryAddress := make([]string, len(bitwiseAddress))
+		// perform operations on each address bit to convert to binary
+		for i, bit := range bitwiseAddress {
+			// make the string an int
+			decimalBit, err := strconv.Atoi(bit)
+			if err != nil {
+				return "", err
+			} else {
+				// convert to base 2
+				binaryBit := strconv.FormatInt(int64(decimalBit), 2)
+				// pad leading zeroes where the binary representation is less than
+				// 8 bits.
+				if len(binaryBit) < 8 {
+					binaryAddress[i] = strings.Repeat("0", 8-len(binaryBit)) + binaryBit
+				} else {
+					binaryAddress[i] = binaryBit
+				}
+			}
+		}
+		return strings.Join(binaryAddress, "."), nil
+	} else if targetFormat == "decimal" {
+		// placeholder for storing values
+		decimalAddress := make([]string, len(bitwiseAddress))
+		for i, bit := range bitwiseAddress {
+			decimalBit, err := strconv.ParseInt(bit, 10, 0)
+			if err != nil {
+				return "", err
+			} else {
+				decimalAddress[i] = strconv.Itoa(int(decimalBit))
+			}
+		}
+		return strings.Join(decimalAddress, "."), nil
+	} else {
+		message := fmt.Errorf("Invalid target format supplied\nSupplied: %s\nExpected: [decimal, binary]\n", targetFormat)
+		return "", message
+	}
+}
+
 func NewConvertCommand() *ConvertCommand {
 	// make a convert command object
 	cc := &ConvertCommand{
@@ -27,62 +82,36 @@ type ConvertCommand struct {
 	binary bool
 }
 
+// type MemberCommand struct {
+// 	fs      *flag.FlagSet
+// 	address string
+// 	cidr    string
+// }
+
 func (c *ConvertCommand) Name() string {
 	return c.fs.Name()
 }
+
+// func (m *MemberCommand) Name() string {
+// 	return m.fs.Name()
+// }
 
 func (c *ConvertCommand) Init(args []string) error {
 	return c.fs.Parse(args)
 }
 
+// func (m *MemberCommand) Init(args []string) error {
+// 	return m.fs.Parse(args)
+// }
+
 func (c *ConvertCommand) Run() error {
-	// start by splitting off the network prefix from the address
-	cidrSlice := strings.Split(c.cidr, "/")
-	networkPrefix, err := strconv.Atoi(cidrSlice[len(cidrSlice)-1])
+	address, networkPrefix, err := ParseCidr(c.cidr)
 	if err != nil {
 		panic(err)
 	}
 
-	// now split the address into bits
-	address := cidrSlice[0]
-	addressSlice := strings.Split(address, ".")
-
-	/* CONVERT ADDRESS DECIMAL TO BINARY
-
-	To perform this conversion, we'll use strconv methods.  There's going to be some typecasting
-	since all the methods relvolve around having strings in inputs, so chaining methods is a little
-	annoying.
-
-	I'm sure there's a module that does this more efficiently, but I want to restrict myself to the
-	stdlib and work in primitive types as much as I can to get comfortable with Go.
-
-	We'll perform the following:
-	  1. Convert our current decimal (base 10) IP address that is currently in a []string to int.
-	  2. Typecast int to int64 (since that's what FormatInt needs)
-	  3. Convert int64 decimal (base 10) address into an in64 binary (base 2) address
-
-	*/
-
-	binaryAddress := make([]string, len(addressSlice))
-	for i, s := range addressSlice {
-		// make the string an int
-		intIp, err := strconv.Atoi(s)
-		if err != nil {
-			panic(err)
-		}
-		// now make the int -> int64, then return the string representation in base
-		// 2, then make it an int64 again
-		int64Ip := int64(intIp)
-		binaryIpString := strconv.FormatInt(int64Ip, 2)
-
-		// pad leading zeroes where the binary representation is less than 8 bits.
-		// this is not strictly required, but it makes printing binary values pretty, so I like it.
-		if len(binaryIpString) < 8 {
-			binaryAddress[i] = strings.Repeat("0", 8-len(binaryIpString)) + binaryIpString
-		} else {
-			binaryAddress[i] = binaryIpString
-		}
-	}
+	/* CONVERT ADDRESS DECIMAL TO BINARY */
+	binaryAddress, err := ConvertAddr(address, "binary")
 
 	/* CONVERT TO START AND END ADDRESS
 
@@ -104,12 +133,13 @@ func (c *ConvertCommand) Run() error {
 	last (`.255`) addresses in our range conversion.
 	*/
 
-	binaryIpString := strings.Join(binaryAddress, "")
 	// take the bits AFTER the network prefix for modification
-	addressPool := binaryIpString[networkPrefix:]
+	binaryBits := strings.Split(binaryAddress, ".")
+	binaryAddress = strings.Join(binaryBits, "")
+	addressPool := binaryAddress[networkPrefix:]
 
-	binaryFirstAddr := binaryIpString[:networkPrefix] + strings.Repeat("0", len(addressPool))
-	binaryLastAddr := binaryIpString[:networkPrefix] + strings.Repeat("1", len(addressPool))
+	binaryFirstAddr := binaryAddress[:networkPrefix] + strings.Repeat("0", len(addressPool))
+	binaryLastAddr := binaryAddress[:networkPrefix] + strings.Repeat("1", len(addressPool))
 
 	/* now we need to split into bits, then convert back to decimal/base10 */
 	binaryFirstAddrSlice := [4]string{binaryFirstAddr[:8], binaryFirstAddr[8:16], binaryFirstAddr[16:24], binaryFirstAddr[24:32]}
@@ -142,7 +172,7 @@ func (c *ConvertCommand) Run() error {
 	// print first & last address
 	if c.binary {
 		fmt.Println("First Address                                  Last Address")
-		fmt.Printf("%v.%v.%v.%v                                      %v.%v.%v.%v\n",
+		fmt.Printf("%v.%v.%v.%v                                    %v.%v.%v.%v\n",
 			decimalFirstAddr[0], decimalFirstAddr[1], decimalFirstAddr[2], decimalFirstAddr[3],
 			decimalLastAddr[0], decimalLastAddr[1], decimalLastAddr[2], decimalLastAddr[3],
 		)
@@ -152,7 +182,7 @@ func (c *ConvertCommand) Run() error {
 		)
 	} else {
 		fmt.Println("First Address     Last Address")
-		fmt.Printf("%v.%v.%v.%v         %v.%v.%v.%v\n",
+		fmt.Printf("%v.%v.%v.%v       %v.%v.%v.%v\n",
 			decimalFirstAddr[0], decimalFirstAddr[1], decimalFirstAddr[2], decimalFirstAddr[3],
 			decimalLastAddr[0], decimalLastAddr[1], decimalLastAddr[2], decimalLastAddr[3])
 	}
@@ -183,7 +213,7 @@ func root(args []string) error {
 		}
 	}
 
-	return fmt.Errorf("Unknown subcommand: %s", subcommand)
+	return fmt.Errorf("Unknown subcommand: %s\nExpected: [ convert ]", subcommand)
 }
 
 func main() {
