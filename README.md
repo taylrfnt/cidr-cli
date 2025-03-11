@@ -28,7 +28,7 @@ git clone git@github.com:taylrfnt/cidr-cli.git weather
 ```
 After cloning the repo, delete the git contents:
 ```
-cd idr-cli && rm -rf .git
+cd cidr-cli && rm -rf .git
 ```
 Now, run a Go build:
 ```
