@@ -11,9 +11,9 @@ exist for command-line processing.
 Right now, this tool only converts CIDR blocks `Address/Network Prefix` to IP address ranges.
 
 I would like to also:
-- Convert IP address ranges to CIDR blocks
-- Test if an IP exists within a given CIDR block
-- Test if an IP exists within a provided IP address range
+- [ ] Convert IP address ranges to CIDR blocks
+- [ ] Test if an IP exists within a given CIDR block
+- [ ] Test if an IP exists within a provided IP address range
 
 # Installation
 ## Build from source
